@@ -3344,7 +3344,7 @@ export default function App() {
   const [singleExercise,   setSingleExercise]   = useState<PlanExercise>(MACHINES[0].defaultExercise);
   const [streakDays,       setStreakDays]        = useState(2);
   const [chatMsgs, setChatMsgs] = useState<Msg[]>([WELCOME]);
-  const [inGym,            setInGym]            = useState(false);
+  const [inGym,            setInGym]            = useState(true);
   const [showLocPopup,     setShowLocPopup]      = useState(false);
   function toggleGym(val: boolean) {
     setInGym(val);
