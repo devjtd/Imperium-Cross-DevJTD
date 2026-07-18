@@ -8,6 +8,8 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@ai-sdk/groq": "4.0.12",
+    "ai": "7.0.31",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",

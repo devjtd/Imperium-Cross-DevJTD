@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
+import { chatWithCoach } from "@/services/groqChat";
 import logoImg from "@/imports/Logo.png";
 import chestPressImg from "@/imports/chest-press-800.jpg";
 import chestPressGif from "@/imports/1_Chest-Press-Machine_gif.gif";
@@ -3053,93 +3054,8 @@ function PlanIAScreen({ nav, onSave }: { nav:(r:Route)=>void; onSave:(plan:Saved
 /* ═══════════════════════════════════════════════════════════
    CHATBOT — NLP token engine
 ═══════════════════════════════════════════════════════════ */
-type Msg = { role:"user"|"ai"; text:string; chips?:{label:string;sub:string}[] };
-const WELCOME: Msg = { role:"ai", text:"¡Hola, Carlos! 👋 Soy tu Coach Virtual. Puedo ayudarte con técnica, nutrición, máquinas de la sala y productos del counter." };
-
-// NLP token engine
-function nlpAnalyze(raw: string): { type:string; response:string; chips?:{label:string;sub:string}[] } {
-  const t = raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
-
-  // 🚨 Priority: pain/injury tokens
-  const painTokens = ["dolor","molestia","hincon","lesion","tiron","sonar","crujir","punzar","jodido","lastimado","inflamado","calambre","herido","esguince","desgarro","quemazón","quema","duele","me duele","me lastimé","me doli"];
-  if (painTokens.some(k=>t.includes(k))) return {
-    type:"pain",
-    response:"⚠️ **Alerta de seguridad activa**\n\nDetecté una posible molestia física. Como medida de protección:\n\n• Detén el ejercicio de inmediato\n• Descansa la zona afectada 48–72h\n• Aplica hielo 15 min cada 2h las primeras 24h\n• Consulta a un fisioterapeuta antes de retomar\n\n📌 No continúes si hay dolor agudo o inflamación visible. Tu salud es lo primero."
-  };
-
-  // 💧 Hydration/store tokens
-  const storeTokens = ["sed","agua","comprar","tienda","counter","recepcion","cafeteria","hambre","antojo","comida","suplemento","proteina","postentreno","preentreno","bebida","hidratacion","shaker","batido","precio","costo","stock","vender","cuanto cuesta","gatorade","c4","creatina"];
-  if (storeTokens.some(k=>t.includes(k))) {
-    if (["hambre","postentreno","acabe","termine","finalice","recovery","recuperar"].some(k=>t.includes(k))) return {
-      type:"store",
-      response:"💪 **Recuperación Post-Entrenamiento**\n\nCarlos, acabas de destruir tus fibras musculares en la sesión. Para optimizar la recuperación, pasa por el counter:\n\n• Batido Proteico Premium Isolate → **S/ 8.00** el vaso\n• Barra de Proteína Think! → **S/ 7.00**\n\n📌 Ventana anabólica: consume proteína en los próximos 30 min."
-    };
-    if (["energia","empujon","preentreno","antes de","pre","rendimiento"].some(k=>t.includes(k))) return {
-      type:"store",
-      response:"⚡ **Energía Pre-Entrenamiento**\n\nSi necesitas un empujón para la rutina de hoy, en vitrina encuentras:\n\n• C4 Energy Drink → **S/ 10.00**\n• Shaker de Creatina Micronizada → **S/ 5.00**\n\n📌 El C4 tiene cafeína — tómalo 20 min antes del entreno."
-    };
-    return {
-      type:"store",
-      response:"💧 **Hidratación y Productos del Counter**\n\nPara hidratarte y recuperar electrolitos, en la tienda del local tenemos:\n\n• Agua Mineral San Mateo → **S/ 2.50**\n• Gatorade (Manzana o Azul) → **S/ 4.50**\n\n¡Recuerda que puedes canjear tus puntos por descuentos en el counter!"
-    };
-  }
-
-  // 🏋️ Machine identification tokens
-  const machineTokens = ["maquina","aparato","equipo","guia de","como se usa","como uso","como utilizo","instrucciones"];
-  const pressTokens   = ["press","empuje","banca","pecho","plano","inclinado"];
-  const armsTokens    = ["brazos","biceps","triceps","antebrazo","flexor","extensor","curl","extension"];
-  const legTokens     = ["piernas","femoral","cuadriceps","sentadilla","prensa","gluteos"];
-  const backTokens    = ["espalda","jalon","remo","dorsal","trapecio","dominada"];
-
-  if (machineTokens.some(k=>t.includes(k)) || (pressTokens.some(k=>t.includes(k)) && armsTokens.some(k=>t.includes(k)))) {
-    // Ambiguous machine query → show chips
-    return {
-      type:"machine",
-      response:"No encontré una máquina llamada exactamente así. ¿Te refieres a alguna de estas?",
-      chips: [
-        { label:"Prensa de Pecho Sentado", sub:"Nº 07" },
-        { label:"Shoulder Press Hombro",   sub:"Nº 12" },
-        { label:"Polea Alta para Tríceps",  sub:"Nº 15" },
-      ]
-    };
-  }
-  if (pressTokens.some(k=>t.includes(k))) return {
-    type:"exercise",
-    response:"**Press de Banca — Guía Técnica**\n\n• Agarre ligeramente más ancho que los hombros\n• Escápulas retraídas y deprimidas durante todo el movimiento\n• Pies apoyados en el suelo, arco lumbar natural\n• Descenso controlado 2–3 seg, empuje explosivo\n• Rango: 4×10 para volumen, 5×5 para fuerza\n\n📌 Máquina de Pecho Sentado disponible en Nº 07 (menos estrés articular)."
-  };
-  if (legTokens.some(k=>t.includes(k))) return {
-    type:"exercise",
-    response:"**Tren Inferior — Recomendación**\n\n• Sentadilla libre: principal movimiento de fuerza — Nº 03\n• Prensa 45°: mayor volumen sin carga espinal — Nº 09\n• Extensiones de cuáds: aislamiento final — Nº 11\n\n• Profundidad: mínimo paralela al suelo\n• Rodillas alineadas con los pies, no hacia adentro\n\n📌 Carlos, dado tu nivel avanzado: añade sentadilla búlgara para isquios."
-  };
-  if (backTokens.some(k=>t.includes(k))) return {
-    type:"exercise",
-    response:"**Espalda — Guía de Ejercicios**\n\n• Jalón al pecho (Nº 04): agarre pronado ancho, codos al cuerpo\n• Remo con barra: espalda neutra, tirón al ombligo\n• Dominadas: el mejor ejercicio de espalda — barra fija zona central\n\n• Foco: retracción escapular antes de cada rep\n• Series recomendadas: 4×8–12\n\n📌 Para anchura: jalón. Para grosor: remo."
-  };
-  if (armsTokens.some(k=>t.includes(k))) return {
-    type:"exercise",
-    response:"**Brazos — Bíceps & Tríceps**\n\n🔵 Bíceps:\n• Curl con barra EZ — agarre supinado, codos fijos\n• Curl martillo — activa braquiorradial\n• Curl concentrado — máxima contracción\n\n🔴 Tríceps:\n• Press francés — Barra EZ sobre frente\n• Extensión en polea alta con cuerda\n• Fondos entre bancos\n\n📌 Codos fijos = aislamiento real."
-  };
-
-  // 📋 Routine / plan tokens
-  const routineTokens = ["rutina","entreno","entrenamiento","plan","tabla","circuito","serie","combo","sesion","programacion","programa"];
-  if (routineTokens.some(k=>t.includes(k))) return {
-    type:"routine",
-    response:"**Planificación de Rutina — Carlos Rodríguez**\n\n• Nivel: Avanzado · 78 kg · 4 sesiones/sem actuales\n• Recomendado: Push/Pull/Legs 6 días (PPL)\n\nEjemplo semanal:\n• Lun: Empujes (Pecho+Hombros+Tríceps)\n• Mar: Tracciones (Espalda+Bíceps)\n• Mié: Piernas + Glúteos\n• Jue: Descanso activo\n• Vie: Repetir ciclo\n\n📌 Usa el generador de Plan IA para una rutina personalizada completa."
-  };
-
-  // 🥗 Nutrition tokens
-  const nutritionTokens = ["nutricion","dieta","comer","macros","proteina","carbohidrato","grasa","caloria","comida","alimentacion","deficit","superavit","bulking","cutting","peso"];
-  if (nutritionTokens.some(k=>t.includes(k))) return {
-    type:"nutrition",
-    response:"**Nutrición para Carlos (78 kg · Avanzado)**\n\n• Proteína: 1.8–2.2 g/kg = **140–172 g/día**\n• Carbohidratos: 4–5 g/kg = **312–390 g/día**\n• Grasas: 0.8–1 g/kg = **62–78 g/día**\n• Calorías totales: ~3,200–3,500 kcal/día\n\n• Pre-entreno: carbos + proteína 1–2h antes\n• Post-entreno: 30–40g proteína + carbos de rápida absorción\n\n📌 Para pérdida de grasa: déficit de 300–500 kcal. Para volumen: superávit de 250–400 kcal."
-  };
-
-  // General query fallback
-  return {
-    type:"general",
-    response:"**Aquí estoy para ayudarte, Carlos.**\n\n• Para técnica de ejercicios: escribe el nombre del ejercicio o máquina\n• Para nutrición: pregunta sobre macros, calorías o dieta\n• Para rutinas: pide tu plan semanal o consulta sobre tu programa\n• Para productos: pregunta por agua, batidos o suplementos del counter\n\n📌 También puedo identificar máquinas por número o nombre parcial."
-  };
-}
+type Msg = { role:"user"|"ai"; text:string };
+const WELCOME: Msg = { role:"ai", text:"¡Hola! 👋 Soy tu Coach Virtual de Imperium Cross. Puedo ayudarte con técnica de ejercicios, nutrición, máquinas de la sala y productos del counter. ¿En qué te puedo ayudar?" };
 
 function ChatbotScreen({ inGym }: { inGym:boolean }) {
   const [msgs,    setMsgs]    = useState<Msg[]>([WELCOME]);
@@ -3148,27 +3064,35 @@ function ChatbotScreen({ inGym }: { inGym:boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(()=>{ ref.current?.scrollIntoView({behavior:"smooth"}); },[msgs,loading]);
 
-  function send(text?: string) {
+  async function send(text?: string) {
     const t = (text ?? input).trim();
     if (!t || loading) return;
     setMsgs(p => [...p, {role:"user", text:t}]);
     if (!text) setInput("");
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const apiMessages = [...msgs, {role:"user" as const, text:t}]
+        .map(m => ({ role: m.role === "ai" ? "assistant" as const : "user" as const, content: m.text }));
+      const response = await chatWithCoach(apiMessages);
+      setMsgs(p => [...p, {role:"ai", text:response}]);
+    } catch {
+      setMsgs(p => [...p, {role:"ai", text:"⚠️ Hubo un error al conectar con el coach. Intenta de nuevo."}]);
+    } finally {
       setLoading(false);
-      const { response, chips } = nlpAnalyze(t);
-      setMsgs(p => [...p, {role:"ai", text:response, chips}]);
-    }, 1400);
+    }
   }
 
   function render(text:string) {
     return text.split("\n").map((l,i) => {
-      if (l.startsWith("**") && l.endsWith("**")) return <strong key={i} style={{ display:"block", marginBottom:"4px", color:"#F2F2F7" }}>{l.slice(2,-2)}</strong>;
-      if (l.startsWith("• ")) return <div key={i} style={{ display:"flex", gap:"6px", marginBottom:"3px" }}><span style={{ color:"#FF4D00", flexShrink:0 }}>•</span><span>{l.slice(2)}</span></div>;
-      if (l.startsWith("🔵") || l.startsWith("🔴")) return <div key={i} style={{ marginTop:"6px", fontWeight:600, color:"#C4C4D0" }}>{l}</div>;
-      if (l.startsWith("📌") || l.startsWith("⚠️") || l.startsWith("💪") || l.startsWith("⚡") || l.startsWith("💧")) return <div key={i} style={{ marginTop:"6px" }}>{l}</div>;
+      const parts = l.split(/(\*\*[^*]+\*\*)/g);
+      const rendered = parts.map((part,j) => {
+        if (part.startsWith("**") && part.endsWith("**"))
+          return <strong key={j} style={{ color:"#F2F2F7" }}>{part.slice(2,-2)}</strong>;
+        return part;
+      });
+      if (l.startsWith("• ")) return <div key={i} style={{ display:"flex", gap:"6px", marginBottom:"3px" }}><span style={{ color:"#FF4D00", flexShrink:0 }}>•</span><span>{rendered}</span></div>;
       if (l === "") return <div key={i} style={{ height:"5px" }}/>;
-      return <span key={i}>{l}</span>;
+      return <span key={i}>{rendered}</span>;
     });
   }
 
@@ -3205,20 +3129,6 @@ function ChatbotScreen({ inGym }: { inGym:boolean }) {
                 <div style={{ fontSize:"12.5px", color:m.role==="user"?"#fff":"#C4C4D0", lineHeight:1.6 }}>{render(m.text)}</div>
               </div>
             </div>
-            {/* Machine chips */}
-            {m.chips && (
-              <div style={{ paddingLeft:"36px", display:"flex", flexDirection:"column", gap:"6px", width:"100%" }}>
-                {m.chips.map((c,ci)=>(
-                  <button key={ci} onClick={()=>send(c.label)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 12px", background:"rgba(123,97,255,0.12)", border:"1px solid rgba(123,97,255,0.3)", borderRadius:"12px", cursor:"pointer", textAlign:"left" }}>
-                    <span style={{ fontSize:"12px", fontWeight:600, color:"#C4B8FF" }}>{c.label}</span>
-                    <span style={{ fontSize:"11px", color:"#7B61FF", fontWeight:700, background:"rgba(123,97,255,0.18)", borderRadius:"6px", padding:"2px 7px" }}>{c.sub}</span>
-                  </button>
-                ))}
-                <button onClick={()=>send("otra máquina diferente")} style={{ padding:"8px 12px", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"12px", cursor:"pointer", fontSize:"11px", color:"#8E8EA0", textAlign:"left" }}>
-                  ✏️ Escribir otro nombre
-                </button>
-              </div>
-            )}
           </div>
         ))}
         {loading && (
@@ -3229,19 +3139,12 @@ function ChatbotScreen({ inGym }: { inGym:boolean }) {
                 <div style={{ display:"flex", gap:"4px" }}>
                   {[0,1,2].map(d=><div key={d} style={{ width:"6px", height:"6px", borderRadius:"50%", background:"#7B61FF", animation:`dotP 1.2s ease-in-out ${d*0.2}s infinite` }}/>)}
                 </div>
-                <span style={{ fontSize:"11px", color:"#8E8EA0", fontStyle:"italic" }}>Analizando tokens...</span>
+                <span style={{ fontSize:"11px", color:"#8E8EA0", fontStyle:"italic" }}>Pensando...</span>
               </div>
             </div>
           </div>
         )}
         <div ref={ref}/>
-      </div>
-
-      {/* Quick suggestion chips */}
-      <div style={{ flexShrink:0, overflowX:"auto", scrollbarWidth:"none", display:"flex", gap:"8px", padding:"8px 16px 0" }}>
-        {["💧 Tengo sed","⚡ Pre-entreno","🦵 Rutina piernas","🏋️ Guía máquina press","💪 Brazos"].map(q=>(
-          <button key={q} onClick={()=>send(q)} style={{ flexShrink:0, padding:"6px 12px", background:"rgba(255,77,0,0.08)", border:"1px solid rgba(255,77,0,0.2)", borderRadius:"20px", cursor:"pointer", fontSize:"11px", color:"#FF6B35", fontWeight:600, whiteSpace:"nowrap" }}>{q}</button>
-        ))}
       </div>
 
       {/* Input */}
