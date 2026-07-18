@@ -3057,8 +3057,7 @@ function PlanIAScreen({ nav, onSave }: { nav:(r:Route)=>void; onSave:(plan:Saved
 type Msg = { role:"user"|"ai"; text:string };
 const WELCOME: Msg = { role:"ai", text:"¡Hola! 👋 Soy tu Coach Virtual de Imperium Cross. Puedo ayudarte con técnica de ejercicios, nutrición, máquinas de la sala y productos del counter. ¿En qué te puedo ayudar?" };
 
-function ChatbotScreen({ inGym }: { inGym:boolean }) {
-  const [msgs,    setMsgs]    = useState<Msg[]>([WELCOME]);
+function ChatbotScreen({ inGym, msgs, setMsgs }: { inGym:boolean; msgs:Msg[]; setMsgs:React.Dispatch<React.SetStateAction<Msg[]>> }) {
   const [input,   setInput]   = useState("");
   const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -3344,6 +3343,7 @@ export default function App() {
   const [workoutExercises, setWorkoutExercises] = useState<PlanExercise[]>([]);
   const [singleExercise,   setSingleExercise]   = useState<PlanExercise>(MACHINES[0].defaultExercise);
   const [streakDays,       setStreakDays]        = useState(2);
+  const [chatMsgs, setChatMsgs] = useState<Msg[]>([WELCOME]);
   const [inGym,            setInGym]            = useState(false);
   const [showLocPopup,     setShowLocPopup]      = useState(false);
   function toggleGym(val: boolean) {
@@ -3371,7 +3371,7 @@ export default function App() {
         {current === "onboarding"       && <OnboardingScreen nav={nav}/>}
         {current === "inicio"           && <HomeScreen nav={nav} onStartWorkout={startWorkout} inGym={inGym} onToggleGym={toggleGym}/>}
         {current === "qr"               && <QRScanScreen nav={nav} onScan={i=>setSelMachineIdx(i)}/>}
-        {current === "chatbot"          && <ChatbotScreen inGym={inGym}/>}
+        {current === "chatbot"          && <ChatbotScreen inGym={inGym} msgs={chatMsgs} setMsgs={setChatMsgs}/>}
         {current === "historial"        && <HistorialScreen nav={nav}/>}
         {current === "historial-stats"  && <HistorialStatsScreen nav={nav}/>}
         {current === "planes"           && <PlanesScreen nav={nav} onSelectCategory={setSelCategory} savedPlans={savedPlans}/>}
