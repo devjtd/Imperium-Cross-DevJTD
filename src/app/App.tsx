@@ -22,7 +22,7 @@ import {
   Send, ArrowRight, RotateCcw, Mail, Lock, Eye, EyeOff, Minus,
   Star, Gift, BarChart2, Ticket, ChevronDown, ChevronUp,
   Weight, Settings, CreditCard, ShieldCheck, Globe, Moon,
-  BellRing, Edit3, LogOut, PlayCircle, Lock as LockIcon,
+  BellRing, Edit3, LogOut, PlayCircle, Pause, Lock as LockIcon,
   User, ShoppingBag, AlertCircle, MapPin,
 } from "lucide-react";
 
@@ -1643,6 +1643,7 @@ function WorkoutSessionScreen({ nav, exercises, onComplete }: { nav:(r:Route)=>v
   const [exIdx,      setExIdx]      = useState(0);
   const [count,      setCount]      = useState(5);
   const [restCount,  setRestCount]  = useState(15);
+  const [restPaused, setRestPaused] = useState(false);
   const [activeTime, setActiveTime] = useState(0);
   const [pulseKey,   setPulseKey]   = useState(0);
 
@@ -1669,11 +1670,11 @@ function WorkoutSessionScreen({ nav, exercises, onComplete }: { nav:(r:Route)=>v
 
   // Phase 4: rest 15→0
   useEffect(() => {
-    if (phase !== "rest") return;
+    if (phase !== "rest" || restPaused) return;
     if (restCount <= 0) { advanceExercise(); return; }
     const t = setTimeout(() => setRestCount(r => r - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, restCount]);
+  }, [phase, restCount, restPaused]);
 
   function startActive() {
     setPhase("active");
@@ -1683,6 +1684,7 @@ function WorkoutSessionScreen({ nav, exercises, onComplete }: { nav:(r:Route)=>v
   function completeExercise() {
     setPhase("rest");
     setRestCount(15);
+    setRestPaused(false);
   }
 
   function advanceExercise() {
@@ -1855,12 +1857,23 @@ function WorkoutSessionScreen({ nav, exercises, onComplete }: { nav:(r:Route)=>v
           </div>
         )}
 
-        <button
-          onClick={advanceExercise}
-          style={{ width:"100%", padding:"13px", borderRadius:"14px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"16px", fontWeight:800, color:"#C4C4D0", textTransform:"uppercase", letterSpacing:"0.06em" }}
-        >
-          Saltar Descanso →
-        </button>
+        <div style={{ display:"flex", gap:"10px", width:"100%" }}>
+          <button
+            onClick={()=>setRestPaused(p=>!p)}
+            style={{ flex:"0 0 auto", width:"52px", height:"52px", borderRadius:"14px", background:restPaused?"rgba(255,77,0,0.15)":"rgba(255,255,255,0.05)", border:restPaused?"1.5px solid rgba(255,77,0,0.35)":"1px solid rgba(255,255,255,0.1)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
+          >
+            {restPaused
+              ? <PlayCircle size={22} color="#FF4D00"/>
+              : <Pause size={22} color="#C4C4D0"/>
+            }
+          </button>
+          <button
+            onClick={advanceExercise}
+            style={{ flex:1, padding:"13px", borderRadius:"14px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:"16px", fontWeight:800, color:"#C4C4D0", textTransform:"uppercase", letterSpacing:"0.06em" }}
+          >
+            Saltar Descanso →
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -3320,12 +3333,13 @@ export default function App() {
   const [chatMsgs, setChatMsgs] = useState<Msg[]>([WELCOME]);
   const [inGym,            setInGym]            = useState(true);
   const [showLocPopup,     setShowLocPopup]      = useState(false);
+  const [showWorkoutChat,  setShowWorkoutChat]   = useState(false);
   function toggleGym(val: boolean) {
     setInGym(val);
     if (val) { setShowLocPopup(true); setTimeout(() => setShowLocPopup(false), 2600); }
   }
   function startWorkout(exs: PlanExercise[]) { setWorkoutExercises(exs); nav("workout-session"); }
-  function completeWorkout() { setStreakDays(d => Math.min(d + 1, 5)); nav("workout-summary"); }
+  function completeWorkout() { setStreakDays(d => Math.min(d + 1, 5)); setShowWorkoutChat(false); nav("workout-summary"); }
   function startSingle(ex: PlanExercise) { setSingleExercise(ex); nav("single-exercise"); }
 
   const current = history[history.length - 1];
@@ -3354,7 +3368,25 @@ export default function App() {
         {current === "rutina-detalle"   && <RutinaDetalleScreen nav={nav} program={selProgram} onStartWorkout={startWorkout}/>}
         {current === "plan-manual"      && <PlanManualScreen nav={nav} onSave={p=>{ addPlan(p); }}/>}
         {current === "plan-ia"          && <PlanIAScreen nav={nav} onSave={p=>{ addPlan(p); }}/>}
-        {current === "workout-session"  && <WorkoutSessionScreen nav={nav} exercises={workoutExercises} onComplete={completeWorkout}/>}
+        {current === "workout-session"  && (
+          <div style={{ flex:1, display:"flex", flexDirection:"column", position:"relative" }}>
+            <WorkoutSessionScreen nav={nav} exercises={workoutExercises} onComplete={completeWorkout}/>
+            {!showWorkoutChat && (
+              <button onClick={()=>setShowWorkoutChat(true)} style={{ position:"absolute", bottom:24, right:20, width:52, height:52, borderRadius:"50%", background:"linear-gradient(135deg,#7B61FF,#FF4D00)", border:"none", cursor:"pointer", boxShadow:"0 4px 24px rgba(123,97,255,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:20 }}>
+                <Bot size={22} color="#fff"/>
+              </button>
+            )}
+            {showWorkoutChat && (
+              <div style={{ position:"absolute", inset:0, zIndex:50, display:"flex", flexDirection:"column", background:"#0B0B12" }}>
+                <button onClick={()=>setShowWorkoutChat(false)} style={{ flexShrink:0, display:"flex", alignItems:"center", gap:"8px", padding:"14px 20px", background:"#0B0B12", border:"none", borderBottom:"1px solid rgba(255,255,255,0.07)", cursor:"pointer" }}>
+                  <ChevronLeft size={20} color="#FF4D00"/>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:"15px", fontWeight:800, color:"#FF4D00" }}>Volver al ejercicio</span>
+                </button>
+                <ChatbotScreen inGym={inGym} msgs={chatMsgs} setMsgs={setChatMsgs}/>
+              </div>
+            )}
+          </div>
+        )}
         {current === "workout-summary"  && <WorkoutSummaryScreen nav={nav} streakDays={streakDays} inGym={inGym}/>}
         {current === "gamification"     && <GamificationScreen nav={nav} earnedCoupons={earnedCoupons} points={userPoints} streakDays={streakDays} inGym={inGym}/>}
         {current === "coupon-wallet"    && <CouponWalletScreen nav={nav} earnedCoupons={earnedCoupons} points={userPoints}/>}
@@ -3363,7 +3395,25 @@ export default function App() {
         {current === "settings"         && <SettingsScreen nav={nav}/>}
         {current === "guia-maquinas"    && <GuiaMaquinasScreen nav={nav} onSelectMachine={i=>{ setSelMachineIdx(i); }}/>}
         {current === "maquina-detalle"  && <MaquinaDetalleScreen nav={nav} machine={MACHINES[selMachineIdx]} fromGuide={history[history.length-2]==="guia-maquinas"} onStartSingle={ex=>startSingle(ex)}/>}
-        {current === "single-exercise"  && <SingleExerciseScreen nav={nav} exercise={singleExercise} machine={MACHINES[selMachineIdx]}/>}
+        {current === "single-exercise"  && (
+          <div style={{ flex:1, display:"flex", flexDirection:"column", position:"relative" }}>
+            <SingleExerciseScreen nav={nav} exercise={singleExercise} machine={MACHINES[selMachineIdx]}/>
+            {!showWorkoutChat && (
+              <button onClick={()=>setShowWorkoutChat(true)} style={{ position:"absolute", bottom:24, right:20, width:52, height:52, borderRadius:"50%", background:"linear-gradient(135deg,#7B61FF,#FF4D00)", border:"none", cursor:"pointer", boxShadow:"0 4px 24px rgba(123,97,255,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:20 }}>
+                <Bot size={22} color="#fff"/>
+              </button>
+            )}
+            {showWorkoutChat && (
+              <div style={{ position:"absolute", inset:0, zIndex:50, display:"flex", flexDirection:"column", background:"#0B0B12" }}>
+                <button onClick={()=>setShowWorkoutChat(false)} style={{ flexShrink:0, display:"flex", alignItems:"center", gap:"8px", padding:"14px 20px", background:"#0B0B12", border:"none", borderBottom:"1px solid rgba(255,255,255,0.07)", cursor:"pointer" }}>
+                  <ChevronLeft size={20} color="#FF4D00"/>
+                  <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:"15px", fontWeight:800, color:"#FF4D00" }}>Volver al ejercicio</span>
+                </button>
+                <ChatbotScreen inGym={inGym} msgs={chatMsgs} setMsgs={setChatMsgs}/>
+              </div>
+            )}
+          </div>
+        )}
 
         {showNav && <BottomNav active={curTab} onNav={navTab}/>}
 
