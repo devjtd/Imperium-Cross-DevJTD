@@ -2371,20 +2371,7 @@ function GamificationScreen({ nav, earnedCoupons, points, streakDays, inGym }: {
         <div style={{ height:"100px" }}/>
       </div>
 
-      {/* Locked overlay when out of gym */}
-      {!inGym && (
-        <div style={{ position:"absolute", inset:0, background:"rgba(11,11,18,0.88)", backdropFilter:"blur(6px)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"14px", zIndex:10 }}>
-          <div style={{ width:"64px", height:"64px", borderRadius:"20px", background:"rgba(255,255,255,0.05)", border:"1.5px solid rgba(255,255,255,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"30px" }}>🔒</div>
-          <div style={{ textAlign:"center", padding:"0 32px" }}>
-            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:"20px", fontWeight:900, color:"#F2F2F7", textTransform:"uppercase", letterSpacing:"0.04em", marginBottom:"6px" }}>Premios no disponibles</p>
-            <p style={{ fontSize:"12px", color:"#8E8EA0", lineHeight:1.6 }}>Esta sección se activa únicamente cuando estás presente en Imperium Cross. Visítanos y activa el modo <span style={{ color:"#FF6B35", fontWeight:700 }}>"En el gym"</span> para acceder a retos, puntos y recompensas.</p>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:"6px", padding:"7px 16px", background:"rgba(255,77,0,0.1)", borderRadius:"20px", border:"1px solid rgba(255,77,0,0.25)" }}>
-            <MapPin size={12} color="#FF6B35"/>
-            <span style={{ fontSize:"11px", color:"#FF6B35", fontWeight:700, letterSpacing:"0.05em" }}>REQUIERE PRESENCIA EN EL GYM</span>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
@@ -3165,20 +3152,7 @@ function ChatbotScreen({ inGym, msgs, setMsgs }: { inGym:boolean; msgs:Msg[]; se
       </div>
       <style>{`@keyframes dotP{0%,100%{opacity:0.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}`}</style>
 
-      {/* Locked overlay when out of gym */}
-      {!inGym && (
-        <div style={{ position:"absolute", inset:0, background:"rgba(11,11,18,0.90)", backdropFilter:"blur(8px)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"14px", zIndex:10 }}>
-          <div style={{ width:"68px", height:"68px", borderRadius:"20px", background:"rgba(123,97,255,0.1)", border:"1.5px solid rgba(123,97,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"32px" }}>🤖</div>
-          <div style={{ textAlign:"center", padding:"0 32px" }}>
-            <p style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:"20px", fontWeight:900, color:"#F2F2F7", textTransform:"uppercase", letterSpacing:"0.04em", marginBottom:"6px" }}>Coach IA no disponible</p>
-            <p style={{ fontSize:"12px", color:"#8E8EA0", lineHeight:1.6 }}>El coach de inteligencia artificial está disponible únicamente dentro de Imperium Cross. Encuéntralo cuando estés en el gym para sacarle el máximo provecho a tu sesión.</p>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:"6px", padding:"7px 16px", background:"rgba(123,97,255,0.1)", borderRadius:"20px", border:"1px solid rgba(123,97,255,0.25)" }}>
-            <MapPin size={12} color="#7B61FF"/>
-            <span style={{ fontSize:"11px", color:"#7B61FF", fontWeight:700, letterSpacing:"0.05em" }}>DISPONIBLE EN EL GYM</span>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
