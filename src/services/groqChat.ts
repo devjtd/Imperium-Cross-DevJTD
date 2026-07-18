@@ -1,5 +1,7 @@
-import { groq } from "@ai-sdk/groq";
+import { createGroq } from "@ai-sdk/groq";
 import { generateText } from "ai";
+
+const groq = createGroq({ apiKey: import.meta.env.VITE_GROQ_API_KEY });
 
 const SYSTEM_PROMPT = `Eres "Coach IA", el asistente inteligente del gimnasio Imperium Cross.
 Tu función es ayudar a los usuarios con todo lo relacionado al gimnasio, fitness y nutrición deportiva.
